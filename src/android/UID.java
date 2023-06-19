@@ -29,149 +29,160 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Random;
+
 public class UID extends CordovaPlugin {
-	public static String uuid; // Device UUID
-	public static String imei; // Device IMEI
-	public static String imsi; // Device IMSI
-	public static String iccid; // Sim IMSI
-	public static String mac; // MAC address
-	public static String serial; // Serial
-	public static Context context;
+    public static String uuid; // Device UUID
+    public static String imei; // Device IMEI
+    public static String imsi; // Device IMSI
+    public static String iccid; // Sim IMSI
+    public static String mac; // MAC address
+    public static Integer permissionId;
 
-	/**
-	 * Constructor.
-	 */
-	public UID() {
-	}
+    /**
+     * Constructor.
+     */
+    public UID() {
+    }
 
-	/**
-	 * Sets the context of the Command. This can then be used to do things like
-	 * get file paths associated with the Activity.
-	 *
-	 * @param cordova The context of the main Activity.
-	 * @param webView The CordovaWebView Cordova is running in.
-	 */
-	@Override
-	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
-		super.initialize(cordova, webView);
-		this.context = cordova.getActivity().getApplicationContext();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-			if (this.context.checkSelfPermission(READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-				getData();
-			} else {
-				ActivityCompat.requestPermissions(this.cordova.getActivity(), new String[]{Manifest.permission.READ_PHONE_STATE}, 123456);
-			}
+    /**
+     * Sets the context of the Command. This can then be used to do things like
+     * get file paths associated with the Activity.
+     *
+     * @param cordova The context of the main Activity.
+     * @param webView The CordovaWebView Cordova is running in.
+     */
+    @Override
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+        super.initialize(cordova, webView);
+		Random random = new Random();
+
+		for (int i = 0; i < 6; i++) {
+			UID.permissionId = random.nextInt(9) + 1;
 		}
-	}
+        Context context = cordova.getActivity().getApplicationContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (context.checkSelfPermission(READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+                getData();
+            } else {
+                ActivityCompat.requestPermissions(this.cordova.getActivity(), new String[]{Manifest.permission.READ_PHONE_STATE}, UID.permissionId);
+            }
+        }
+    }
 
-	@Override
-	public void onRequestPermissionsResult(int requestCode,
-										   @NonNull String[] permissions,
-										   @NonNull int[] grantResults) {
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
 
-		if (requestCode == 123456) {
-			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-				getData();
-			} else {
+        if (requestCode == UID.permissionId) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getData();
+            } else {
+				UID.imei = "N/A";
+				UID.imsi = "N/A";
+				UID.iccid = "N/A";
+				UID.mac = "N/A";
+				UID.uuid = "N/A";
+            }
+        }
+    }
 
-			}
-		}
-	}
-
-	public void getData() {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-			UID.uuid = Build.getSerial();
-		}
-		UID.imei = getImei(this.context);
-		UID.imsi = getImsi(this.context);
-		UID.iccid = getIccid(this.context);
-		UID.mac = getMac(this.context);
-	}
+    public void getData() {
+		Context context = this.cordova.getContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            UID.uuid = Build.getSerial();
+        }
+        UID.imei = getImei(context);
+        UID.imsi = getImsi(context);
+        UID.iccid = getIccid(context);
+        UID.mac = getMac(context);
+    }
 
 
-	/**
-	 * Executes the request and returns PluginResult.
-	 *
-	 * @param action            The action to execute.
-	 * @param args              JSONArry of arguments for the plugin.
-	 * @param callbackContext   The callback id used when calling back into JavaScript.
-	 * @return                  True if the action was valid, false if not.
-	 */
-	@Override
-	public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-		if (action.equals("getUID")) {
-			JSONObject r = new JSONObject();
-			r.put("UUID", UID.uuid);
-			r.put("IMEI", UID.imei);
-			r.put("IMSI", UID.imsi);
-			r.put("ICCID", UID.iccid);
-			r.put("MAC", UID.mac);
-			callbackContext.success(r);
-		} else {
-			return false;
-		}
-		return true;
-	}
+    /**
+     * Executes the request and returns PluginResult.
+     *
+     * @param action          The action to execute.
+     * @param args            JSONArry of arguments for the plugin.
+     * @param callbackContext The callback id used when calling back into JavaScript.
+     * @return True if the action was valid, false if not.
+     */
+    @Override
+    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        if (action.equals("getUID")) {
+            JSONObject r = new JSONObject();
+            r.put("UUID", UID.uuid);
+            r.put("IMEI", UID.imei);
+            r.put("IMSI", UID.imsi);
+            r.put("ICCID", UID.iccid);
+            r.put("MAC", UID.mac);
+            callbackContext.success(r);
+        } else {
+            return false;
+        }
+        return true;
+    }
 
-	/**
-	 * Get the device's Universally Unique Identifier (UUID).
-	 *
-	 * @param context The context of the main Activity.
-	 * @return
-	 */
-	public String getUuid(Context context) {
-		String uuid = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
-		return uuid;
-	}
+    /**
+     * Get the device's Universally Unique Identifier (UUID).
+     *
+     * @param context The context of the main Activity.
+     * @return
+     */
+    public String getUuid(Context context) {
+        String uuid = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        return uuid;
+    }
 
-	/**
-	 * Get the device's International Mobile Station Equipment Identity (IMEI).
-	 *
-	 * @param context The context of the main Activity.
-	 * @return
-	 */
-	public String getImei(Context context) {
-		final TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-		String imei = mTelephony.getDeviceId();
-		return imei;
-	}
+    /**
+     * Get the device's International Mobile Station Equipment Identity (IMEI).
+     *
+     * @param context The context of the main Activity.
+     * @return
+     */
+    public String getImei(Context context) {
+        final TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String imei = mTelephony.getDeviceId();
+        return imei;
+    }
 
-	/**
-	 * Get the device's International mobile Subscriber Identity (IMSI).
-	 *
-	 * @param context The context of the main Activity.
-	 * @return
-	 */
-	public String getImsi(Context context) {
-		final TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-		String imsi = mTelephony.getSubscriberId();
-		return imsi;
+    /**
+     * Get the device's International mobile Subscriber Identity (IMSI).
+     *
+     * @param context The context of the main Activity.
+     * @return
+     */
+    public String getImsi(Context context) {
+        final TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String imsi = mTelephony.getSubscriberId();
+        return imsi;
 
-	}
+    }
 
-	/**
-	 * Get the sim's Integrated Circuit Card Identifier (ICCID).
-	 *
-	 * @param context The context of the main Activity.
-	 * @return
-	 */
-	public String getIccid(Context context) {
-		final TelephonyManager mTelephony = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-		String iccid = mTelephony.getSimSerialNumber();
-		return iccid;
-	}
+    /**
+     * Get the sim's Integrated Circuit Card Identifier (ICCID).
+     *
+     * @param context The context of the main Activity.
+     * @return
+     */
+    public String getIccid(Context context) {
+        final TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String iccid = mTelephony.getSimSerialNumber();
+        return iccid;
+    }
 
-	/**
-	 * Get the Media Access Control address (MAC).
-	 *
-	 * @param context The context of the main Activity.
-	 * @return
-	 */
-	public String getMac(Context context) {
-		final WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-		final WifiInfo wInfo = wifiManager.getConnectionInfo();
-		String mac = wInfo.getMacAddress();
-		return mac;
-	}
+    /**
+     * Get the Media Access Control address (MAC).
+     *
+     * @param context The context of the main Activity.
+     * @return
+     */
+    public String getMac(Context context) {
+        final WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        final WifiInfo wInfo = wifiManager.getConnectionInfo();
+        String mac = wInfo.getMacAddress();
+        return mac;
+    }
 
 }

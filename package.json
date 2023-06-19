@@ -1,0 +1,14 @@
+{
+  "name": "@bajzik/cordova-plugin-uid",
+  "version": "1.0.0",
+  "description": "Cordova plugin to get unique identifiers: UUID, IMEI, IMSI, ICCID and MAC.",
+  "main": "index.js",
+  "scripts": {
+    "test": "exit 0"
+  },
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "@bajzik:registry": "https://npm.pkg.github.com"
+  }
+}

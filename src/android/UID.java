@@ -5,11 +5,20 @@
  */
 package org.hygieiasoft.cordova.uid;
 
+import static android.Manifest.permission.READ_PHONE_STATE;
+
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.provider.Settings;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
@@ -26,6 +35,8 @@ public class UID extends CordovaPlugin {
 	public static String imsi; // Device IMSI
 	public static String iccid; // Sim IMSI
 	public static String mac; // MAC address
+	public static String serial; // Serial
+	public static Context context;
 
 	/**
 	 * Constructor.
@@ -43,13 +54,40 @@ public class UID extends CordovaPlugin {
 	@Override
 	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
 		super.initialize(cordova, webView);
-		Context context = cordova.getActivity().getApplicationContext();
-		UID.uuid = getUuid(context);
-		UID.imei = getImei(context);
-		UID.imsi = getImsi(context);
-		UID.iccid = getIccid(context);
-		UID.mac = getMac(context);
+		this.context = cordova.getActivity().getApplicationContext();
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			if (this.context.checkSelfPermission(READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+				getData();
+			} else {
+				ActivityCompat.requestPermissions(this.cordova.getActivity(), new String[]{Manifest.permission.READ_PHONE_STATE}, 123456);
+			}
+		}
 	}
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode,
+										   @NonNull String[] permissions,
+										   @NonNull int[] grantResults) {
+
+		if (requestCode == 123456) {
+			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+				getData();
+			} else {
+
+			}
+		}
+	}
+
+	public void getData() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			UID.uuid = Build.getSerial();
+		}
+		UID.imei = getImei(this.context);
+		UID.imsi = getImsi(this.context);
+		UID.iccid = getIccid(this.context);
+		UID.mac = getMac(this.context);
+	}
+
 
 	/**
 	 * Executes the request and returns PluginResult.
@@ -108,6 +146,7 @@ public class UID extends CordovaPlugin {
 		final TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 		String imsi = mTelephony.getSubscriberId();
 		return imsi;
+
 	}
 
 	/**
